@@ -13,13 +13,13 @@ class MembersPage < Scraped::HTML
   decorator WikidataIdsDecorator::Links
 
   field :members do
-    member_rows.css('li a').map { |li| fragment(li => MemberItem).to_h }
+    member_rows.map { |li| fragment(li => MemberRow).to_h }
   end
 
   private
 
   def member_table
-    noko.xpath('//table[.//th[contains(.,"Members of Stortinget")]]')
+    noko.xpath('//table[.//th[contains(.,"Navn")]]')
   end
 
   def member_rows
@@ -27,19 +27,37 @@ class MembersPage < Scraped::HTML
   end
 end
 
-class MemberItem < Scraped::HTML
-  field :id do
-    noko.attr('wikidata')
+class MemberRow < Scraped::HTML
+  field :name do
+    tds[1].css('a').map(&:text).first
   end
 
-  field :name do
-    noko.text.tidy
+  field :id do
+    tds[1].css('a/@wikidata').map(&:text).first
+  end
+
+  field :party_id do
+    tds[2].css('a/@wikidata').map(&:text).first
+  end
+
+  field :party do
+    tds[2].css('a').map(&:text).first
+  end
+
+  field :area_id do
+    tds[3].css('a/@wikidata').map(&:text).first
   end
 
   field :area do
-    noko.xpath('preceding::th').last.text.tidy
+    tds[3].css('a').map(&:text).first
+  end
+
+  private
+
+  def tds
+    noko.css('td')
   end
 end
 
-url = 'https://en.wikipedia.org/wiki/Template:Stortinget_2017%E2%80%932021'
+url = 'https://no.wikipedia.org/wiki/Liste_over_stortingsrepresentanter_2017%E2%80%932021'
 Scraped::Scraper.new(url => MembersPage).store(:members)
